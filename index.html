@@ -4,34 +4,40 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Arkiv Sketch App</title>
+    <title>Arkiv Playground</title>
   </head>
   <body>
-    <div id="app">
+    <div id="app" style="display: none">
       <header>
-        <h1>Arkiv Sketch App</h1>
-        <button id="connect-btn">Connect MetaMask</button>
-        <div id="account"></div>
+        <h1>Arkiv Playground</h1>
+        <div style="display: flex; flex-direction: column">
+            <div id="account" style="font-family: monospace">
+
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px">
+                <button id="reset-account-btn">Reset Account</button>
+                <div id="balance"></div>
+            </div>
+        </div>
       </header>
 
       <div class="container">
         <div class="left-panel">
-          <h2>Recent Sketches</h2>
-          <div id="sketch-list">
-            <p>Connect your wallet to see sketches</p>
-          </div>
+          <h2>Left panel</h2>
         </div>
 
         <div class="right-panel">
-          <h2>Draw Something</h2>
-          <div id="canvas-container"></div>
-          <div class="controls">
-            <button id="reset-btn">Reset</button>
-            <button id="save-btn">Save</button>
-          </div>
+          <h2>Right panel</h2>
         </div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
+
   </body>
+  <style>
+      #account a {
+          color: inherit;
+          text-decoration: none;
+      }
+  </style>
 </html>

@@ -49,9 +49,8 @@ export async function loadSketches(userAddress: string): Promise<Sketch[]> {
 
 export async function saveSketch(
 	imageData: string,
-	userAddress: string,
 ): Promise<string> {
-	const { walletClient } = createArkivClients(userAddress as `0x${string}`);
+	const { walletClient } = createArkivClients();
 
 	const { entityKey } = await walletClient.createEntity({
 		payload: jsonToPayload({

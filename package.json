@@ -13,8 +13,9 @@
     "vite": "^7.2.2"
   },
   "dependencies": {
-    "@arkiv-network/sdk": "^0.4.4",
+    "@arkiv-network/sdk": "=0.5.2-dev.1",
     "@types/p5": "^1.7.7",
-    "p5": "^2.1.1"
+    "p5": "^2.1.1",
+    "viem": "*"
   }
 }

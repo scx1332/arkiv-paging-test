@@ -1,130 +1,37 @@
 import "./style.css";
-import p5 from "p5";
-import { connectWallet } from "./wallet";
-import { loadSketches, saveSketch, type Sketch } from "./sketch";
-
-let userAddress: string | null = null;
-let sketches: Sketch[] = [];
-let p5Instance: p5 | null = null;
+import {cleanLocalStorageKey, connectWallet} from "./wallet.ts";
 
 // DOM elements
-const connectBtn = document.getElementById("connect-btn") as HTMLButtonElement;
+const app = document.getElementById("app") as HTMLButtonElement;
 const accountDiv = document.getElementById("account") as HTMLDivElement;
-const sketchList = document.getElementById("sketch-list") as HTMLDivElement;
-const saveBtn = document.getElementById("save-btn") as HTMLButtonElement;
-const resetBtn = document.getElementById("reset-btn") as HTMLButtonElement;
-const canvasContainer = document.getElementById(
-	"canvas-container",
-) as HTMLDivElement;
+const accountBalance = document.getElementById("balance") as HTMLDivElement;
 
-// Connect wallet
-connectBtn.addEventListener("click", async () => {
-	try {
-		connectBtn.disabled = true;
-		connectBtn.textContent = "Connecting...";
-		userAddress = await connectWallet();
-		accountDiv.textContent = `Connected: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
-		connectBtn.style.display = "none";
-		await refreshSketches();
-	} catch (error) {
-		console.error("Failed to connect:", error);
-		alert(`Failed to connect wallet: ${(error as Error).message}`);
-		connectBtn.disabled = false;
-		connectBtn.textContent = "Connect MetaMask";
-	}
+const resetAccountBtn = document.getElementById("reset-account-btn") as HTMLButtonElement;
+
+resetAccountBtn.addEventListener("click", async () => {
+  if ( confirm("Are you sure you want to reset the account? This will generate a new wallet and you may lose access to any funds in the current wallet.")) {
+    cleanLocalStorageKey();
+    //reload the page
+    window.location.reload();
+  }
 });
 
-// Refresh sketches from Arkiv
-async function refreshSketches() {
-	if (!userAddress) return;
+async function init() {
+  const clients = await connectWallet();
 
-	try {
-		sketchList.innerHTML = "<p>Loading sketches...</p>";
-		sketches = await loadSketches(userAddress);
-		renderSketchList();
-	} catch (error) {
-		console.error("Failed to load sketches:", error);
-		sketchList.innerHTML = "<p>Failed to load sketches</p>";
-	}
+  accountBalance.textContent = "";
+  accountDiv.innerHTML = `<a href="https://explorer.rosario.hoodi.arkiv.network/address/${clients.getAddress()}" target="_blank" rel="noopener noreferrer">${clients.getAddress()}</a>`;
+
+  const balance = await clients.getBalance();
+  const ethBalance = Number(balance) / 1e18;
+  accountBalance.textContent = `Balance: ${ethBalance.toFixed(4)} ETH`;
+
+  app.setAttribute("style", "display: block;");
 }
 
-// Render sketch list
-function renderSketchList() {
-	if (sketches.length === 0) {
-		sketchList.innerHTML = "<p>No sketches yet. Draw something!</p>";
-		return;
-	}
+init().then(() => {
+  console.log("App initialized");
+}).catch((err) => {
+  console.error("Failed to initialize app:", err);
+})
 
-	sketchList.innerHTML = sketches
-		.map((sketch) => {
-			const date = new Date(sketch.timestamp).toLocaleString();
-			return `
-        <div class="sketch-item">
-          <img src="${sketch.imageData}" alt="Sketch" />
-          <div class="sketch-info">
-            <small>${date}</small>
-          </div>
-          <a href="https://explorer.mendoza.hoodi.arkiv.network/entity/${sketch.id}" target="_blank" class="entity-link">
-            ${sketch.id.slice(0, 12)}...
-          </a>
-        </div>
-      `;
-		})
-		.join("");
-}
-
-// Setup p5.js canvas
-const sketch = (p: p5) => {
-	p.setup = () => {
-		const containerWidth = canvasContainer.offsetWidth;
-		p.createCanvas(containerWidth, containerWidth);
-		p.background(255);
-	};
-
-	p.draw = () => {
-		if (p.mouseIsPressed) {
-			p.stroke(0);
-			p.strokeWeight(2);
-			p.line(p.mouseX, p.mouseY, p.pmouseX, p.pmouseY);
-		}
-	};
-};
-
-p5Instance = new p5(sketch, canvasContainer);
-
-// Reset canvas
-resetBtn.addEventListener("click", () => {
-	if (p5Instance) {
-		p5Instance.background(255);
-	}
-});
-
-// Save sketch
-saveBtn.addEventListener("click", async () => {
-	if (!userAddress || !p5Instance) return;
-
-	try {
-		saveBtn.disabled = true;
-		saveBtn.textContent = "Saving...";
-
-		// Get canvas element and convert to image data
-		const canvas = document.querySelector(
-			"#canvas-container canvas",
-		) as HTMLCanvasElement;
-		const imageData = canvas.toDataURL("image/png");
-
-		await saveSketch(imageData, userAddress);
-
-		// Reset canvas and refresh list
-		p5Instance.background(255);
-		await refreshSketches();
-
-		saveBtn.disabled = false;
-		saveBtn.textContent = "Save";
-	} catch (error) {
-		console.error("Failed to save sketch:", error);
-		alert(`Failed to save sketch: ${(error as Error).message}`);
-		saveBtn.disabled = false;
-		saveBtn.textContent = "Save";
-	}
-});

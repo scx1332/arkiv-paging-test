@@ -1,82 +1,95 @@
 import {
-	createPublicClient,
-	createWalletClient,
-	custom,
-	http,
+  createPublicClient as ViemCreatePublicClient,
+} from "viem";
+import {
+  createPublicClient,
+  createWalletClient,
+  http, type PublicArkivClient, type WalletArkivClient,
 } from "@arkiv-network/sdk";
-import { mendoza } from "@arkiv-network/sdk/chains";
+import { rosario } from "@arkiv-network/sdk/chains";
 import "viem/window";
+import { privateKeyToAccount } from "@arkiv-network/sdk/accounts"
+import {type PublicClient} from "viem";
 
-async function switchToMendozaChain() {
-	if (!window.ethereum) {
-		throw new Error("MetaMask not installed");
-	}
+class EasyRpcClients {
+  publicViemClient: PublicClient;
+  publicClient: PublicArkivClient;
+  walletClient: WalletArkivClient;
 
-	const chainIdHex = `0x${mendoza.id.toString(16)}`;
+  constructor(
+    publicViemClient: PublicClient,
+    publicClient: PublicArkivClient,
+    walletClient: WalletArkivClient
+  ) {
+    this.publicViemClient = publicViemClient;
+    this.publicClient = publicClient;
+    this.walletClient = walletClient;
+  }
 
-	try {
-		// Try to switch to the chain
-		await window.ethereum.request({
-			method: "wallet_switchEthereumChain",
-			params: [{ chainId: chainIdHex }],
-		});
-	} catch (error: unknown) {
-		// Chain doesn't exist, add it
-		if (
-			error &&
-			typeof error === "object" &&
-			"code" in error &&
-			error.code === 4902
-		) {
-			await window.ethereum.request({
-				method: "wallet_addEthereumChain",
-				params: [
-					{
-						chainId: chainIdHex,
-						chainName: mendoza.name,
-						nativeCurrency: mendoza.nativeCurrency,
-						rpcUrls: mendoza.rpcUrls.default.http,
-						blockExplorerUrls: [mendoza.blockExplorers.default.url],
-					},
-				],
-			});
-		} else {
-			throw error;
-		}
-	}
+  getAddress() {
+    return this.walletClient.account!.address;
+  }
+
+  async getBalance() {
+    return this.publicViemClient.getBalance({
+      address: this.getAddress() as `0x${string}`,
+    });
+  }
 }
 
-export async function connectWallet() {
-	if (!window.ethereum) {
-		throw new Error("MetaMask not installed");
-	}
 
-	// First switch to the correct chain
-	await switchToMendozaChain();
 
-	// Then request accounts
-	const accounts = await window.ethereum.request({
-		method: "eth_requestAccounts",
-	});
 
-	return accounts[0];
+let currentClients: EasyRpcClients | null = null;
+
+
+export function cleanLocalStorageKey() {
+  const keyName = "arkiv:local:privateKey";
+  localStorage.removeItem(keyName);
 }
 
-export function createArkivClients(account?: `0x${string}`) {
-	if (!window.ethereum) {
-		throw new Error("MetaMask not installed");
-	}
+function getOrCreateLocalStorageKey() {
+  const keyName = "arkiv:local:privateKey";
+  const stored = localStorage.getItem(keyName);
+  if (stored && /^0x[0-9a-fA-F]{64}$/.test(stored)) {
+    return stored as `0x${string}`;
+  }
+
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  const privateKey = (`0x${hex}`) as `0x${string}`;
+  localStorage.setItem(keyName, privateKey);
+  return privateKey;
+}
+
+export function createArkivClients(): EasyRpcClients {
+  const publicViemClient = ViemCreatePublicClient({
+    chain: rosario,
+    transport: http(), // use the default RPC defined in the chain object
+  });
 
 	const publicClient = createPublicClient({
-		chain: mendoza,
+		chain: rosario,
 		transport: http(), // use the default RPC defined in the chain object
 	});
 
 	const walletClient = createWalletClient({
-		chain: mendoza,
-		transport: custom(window.ethereum), // use MetaMask to sign transactions
-		account,
+		chain: rosario,
+		account: privateKeyToAccount(getOrCreateLocalStorageKey()),
+    transport: http(),
 	});
 
-	return { publicClient, walletClient };
+	return new EasyRpcClients(publicViemClient, publicClient, walletClient);
+}
+
+export function connectWallet() {
+  currentClients = createArkivClients();
+  return currentClients;
+}
+
+export function getClients(): EasyRpcClients {
+  if (!currentClients) {
+    return connectWallet();
+  }
+  return currentClients;
 }
