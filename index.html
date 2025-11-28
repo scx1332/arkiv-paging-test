@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arkiv Sketch App</title>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>Arkiv Sketch App</h1>
+        <button id="connect-btn">Connect MetaMask</button>
+        <div id="account"></div>
+      </header>
+
+      <div class="container">
+        <div class="left-panel">
+          <h2>Recent Sketches</h2>
+          <div id="sketch-list">
+            <p>Connect your wallet to see sketches</p>
+          </div>
+        </div>
+
+        <div class="right-panel">
+          <h2>Draw Something</h2>
+          <div id="canvas-container"></div>
+          <div class="controls">
+            <button id="reset-btn">Reset</button>
+            <button id="save-btn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
